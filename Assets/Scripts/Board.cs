@@ -27,9 +27,9 @@ public class Board : MonoBehaviour
             for(int y = 0; y < height; y++)
             {
                 Vector2 tempPosition = new Vector2(x, y); 
-                Instantiate(squarePrefab, tempPosition, Quaternion.identity);
-
-                //allSquares[x, y] = 
+                GameObject newSquare = Instantiate(squarePrefab, tempPosition, Quaternion.identity) as GameObject;
+                newSquare.transform.parent = this.transform;
+                newSquare.name = "Square (" + x + ", " + y + ")";
             }
         }
     }
