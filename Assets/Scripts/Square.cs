@@ -5,12 +5,12 @@ using UnityEngine;
 public class Square : MonoBehaviour
 {
 
-    [SerializeField] GameObject[] pieces;
+    //[SerializeField] GameObject[] pieces;
 
     // Start is called before the first frame update
     void Start()
     {
-        InitPiece();
+        //InitPiece();
     }
 
     // Update is called once per frame
@@ -19,12 +19,13 @@ public class Square : MonoBehaviour
         
     }
 
-    void InitPiece()
-    {
-        int pieceToUse = Random.Range(0, pieces.Length);
-        GameObject piece = Instantiate(pieces[pieceToUse], transform.position, Quaternion.identity) as GameObject;
+    //void InitPiece()
+    //{
+    //    int pieceToUse = Random.Range(0, pieces.Length);
+    //    GameObject piece = Instantiate(pieces[pieceToUse], transform.position, Quaternion.identity) as GameObject;
 
-        piece.transform.parent = this.transform;
-        piece.name = pieces[pieceToUse].name + "(" + this.transform.position.x + ", " + this.transform.position.y + ")";
-    }
+    //    piece.transform.parent = this.transform;
+    //    piece.name = pieces[pieceToUse].name + "(" + this.transform.position.x + ", " + this.transform.position.y + ")";
+    //}
+
 }
