@@ -1,16 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class Square : MonoBehaviour
 {
 
-    //[SerializeField] GameObject[] pieces;
+    [SerializeField] private Sprite[] sprites;
+
+    private bool pieceSelected = false;
 
     // Start is called before the first frame update
     void Start()
     {
-        //InitPiece();
     }
 
     // Update is called once per frame
@@ -19,13 +21,18 @@ public class Square : MonoBehaviour
         
     }
 
-    //void InitPiece()
-    //{
-    //    int pieceToUse = Random.Range(0, pieces.Length);
-    //    GameObject piece = Instantiate(pieces[pieceToUse], transform.position, Quaternion.identity) as GameObject;
+    public void SwitchSprite()
+    {
+        if (!pieceSelected)
+        {
+            this.GetComponentInParent<SpriteRenderer>().sprite = sprites[1];
+            pieceSelected = true;
+        }
+        else
+        {
+            this.GetComponentInParent<SpriteRenderer>().sprite = sprites[0];
+            pieceSelected = false;
+        }
 
-    //    piece.transform.parent = this.transform;
-    //    piece.name = pieces[pieceToUse].name + "(" + this.transform.position.x + ", " + this.transform.position.y + ")";
-    //}
-
+    }
 }
