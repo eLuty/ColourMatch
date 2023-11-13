@@ -1,37 +1,22 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class Square : MonoBehaviour
 {
 
     [SerializeField] private Sprite[] sprites;
+    //[SerializeField] private bool pieceSelected = false;
 
-    private bool pieceSelected = false;
-
-    // Start is called before the first frame update
-    void Start()
+    public void SwitchSprite(bool pieceSelected)
     {
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    public void SwitchSprite()
-    {
-        if (!pieceSelected)
+        if (pieceSelected)
         {
             this.GetComponentInParent<SpriteRenderer>().sprite = sprites[1];
-            pieceSelected = true;
         }
         else
         {
             this.GetComponentInParent<SpriteRenderer>().sprite = sprites[0];
-            pieceSelected = false;
         }
 
     }

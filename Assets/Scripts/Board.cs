@@ -1,4 +1,3 @@
-using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,7 +5,7 @@ using UnityEngine;
 public class Board : MonoBehaviour
 {
     // Game board vars
-    [SerializeField] private int wdith;
+    [SerializeField] private int width;
     [SerializeField] private int height;
 
     [SerializeField] private GameObject squarePrefab;
@@ -14,25 +13,23 @@ public class Board : MonoBehaviour
     //Game control vars
     [SerializeField] private GameController gameControl;
     
-    [SerializeField] public GameObject[,] allPieces;
+    private GameObject[,] allPieces;
     private GameObject[,] allSquares;
 
     // Game pieces vars
     [SerializeField] private GameObject[] pieces;
 
-
-    // Start is called before the first frame update
     void Start()
     {
-        allSquares = new GameObject[wdith, height];
-        allPieces = new GameObject[wdith, height];
+        allSquares = new GameObject[width, height];
+        allPieces = new GameObject[width, height];
         CreateBoard();
         CreatePieces();
     }
 
     private void CreateBoard()
     {
-       for(int x = 0; x < wdith; x++)
+       for(int x = 0; x < width; x++)
         {
             for(int y = 0; y < height; y++)
             {
@@ -44,11 +41,13 @@ public class Board : MonoBehaviour
                 allSquares[x, y] = newSquare;
             }
         }
+
+        gameControl.SetSquares(width, height, allSquares);
     }
 
     private void CreatePieces()
     {
-        for(int x = 0;x < wdith; x++)
+        for(int x = 0; x < width; x++)
         {
             for(int y=0; y < height; y++)
             {
@@ -62,7 +61,9 @@ public class Board : MonoBehaviour
                 Piece pieceComponent = piece.GetComponent<Piece>();
                 pieceComponent.gameControl = gameControl;
                 pieceComponent.gamePiece = piece;
-                pieceComponent.currentSquare = allSquares[x, y];
+
+                // is this needed still?
+                //pieceComponent.currentSquare = allSquares[x, y].GetComponent<Square>();
 
                 allPieces[x, y] = piece;
             }

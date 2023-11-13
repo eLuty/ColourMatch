@@ -98,7 +98,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b41868b6fb02c944c9770d7077ceedf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isSelected: 0
+  gameControl: {fileID: 0}
+  gamePiece: {fileID: 0}
+  currentSquare: {fileID: 0}
 --- !u!58 &6479012406078586237
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -114,4 +116,4 @@ CircleCollider2D:
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
-  m_Radius: 0.32617188
+  m_Radius: 0.45
