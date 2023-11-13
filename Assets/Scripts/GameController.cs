@@ -10,11 +10,10 @@ public class GameController : MonoBehaviour
 
     public UnityEvent OnMoveComplete;
 
-    //private GameObject[,] allPieces;
     private GameObject[,] allSquares;
 
-    [SerializeField] private GameObject pieceOne = null;
-    [SerializeField] private GameObject pieceTwo = null;
+    private GameObject pieceOne = null;
+    private GameObject pieceTwo = null;
 
     private Square originSquare;
 
