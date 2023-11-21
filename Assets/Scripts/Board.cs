@@ -42,16 +42,23 @@ public class Board : MonoBehaviour
             }
         }
 
-        gameControl.SetSquares(width, height, allSquares);
+        gameControl.SetObjectArray(width, height, allSquares, true);
     }
 
     private void CreatePieces()
     {
         for(int x = 0; x < width; x++)
         {
-            for(int y=0; y < height; y++)
+            for(int y = 0; y < height; y++)
             {
-                int pieceToUse = Random.Range(0, pieces.Length);                
+                int pieceToUse = Random.Range(0, pieces.Length);
+                //GameObject newPiece = pieces[pieceToUse];
+
+                while (CheckPiece(x, y, pieces[pieceToUse]))
+                {
+                    pieceToUse = Random.Range(0, pieces.Length);
+                }
+
                 Vector2 tempPosition = new Vector2(x, y);
 
                 GameObject piece = Instantiate(pieces[pieceToUse], tempPosition, Quaternion.identity) as GameObject;
@@ -62,11 +69,47 @@ public class Board : MonoBehaviour
                 pieceComponent.gameControl = gameControl;
                 pieceComponent.gamePiece = piece;
 
-                // is this needed still?
-                //pieceComponent.currentSquare = allSquares[x, y].GetComponent<Square>();
-
                 allPieces[x, y] = piece;
             }
+        }
+
+        gameControl.SetObjectArray(width, height, allPieces, false);
+    }
+
+    private bool CheckPiece(int x, int y, GameObject piece)
+    {
+        if (x <= 1 && y > 1)
+        {
+            // check down only
+            if (allPieces[x, y - 1].CompareTag(piece.tag) && allPieces[x, y - 2].CompareTag(piece.tag))
+                return true;
+            else
+                return false;
+        }
+        else if (x > 1 && y <= 1)
+        {
+            // check left only
+            if (allPieces[x - 1, y].CompareTag(piece.tag) && allPieces[x - 2, y].CompareTag(piece.tag))
+                return true;
+            else
+                return false;
+        }
+        else if (x > 1 && y > 1)
+        {
+            // check left and down
+            if (allPieces[x - 1, y].CompareTag(piece.tag) && allPieces[x - 2, y].CompareTag(piece.tag) ||
+                allPieces[x, y - 1].CompareTag(piece.tag) && allPieces[x, y - 2].CompareTag(piece.tag))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
         }
     }
 }

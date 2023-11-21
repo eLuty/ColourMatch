@@ -17,6 +17,7 @@ public class Piece : MonoBehaviour
     private Vector2 homePosition;
     private Vector2 destinationPosition;
 
+
     private bool isMoving;
     
     private void Start()

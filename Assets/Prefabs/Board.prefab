@@ -44,9 +44,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc0dfa0c2047ba1479d29f17cb6428da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  wdith: 7
-  height: 7
+  width: 0
+  height: 0
   squarePrefab: {fileID: 5657334393233558911, guid: d1ed9c427e4a65440a0a2d16d76c41f1, type: 3}
+  gameControl: {fileID: 0}
   pieces:
   - {fileID: 2763616274246961296, guid: c0bdffb3fad958d48937b7fbf58ffcec, type: 3}
   - {fileID: 8139231926180273852, guid: 7ef6ebcf0a4b6454db1e4171c68a62f2, type: 3}

@@ -11,6 +11,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Piece - Red
       objectReference: {fileID: 0}
+    - target: {fileID: 437219513223969861, guid: 8ba572c951c9e0341a34ba0699e61b29, type: 3}
+      propertyPath: m_TagString
+      value: red
+      objectReference: {fileID: 0}
     - target: {fileID: 6916583829265095862, guid: 8ba572c951c9e0341a34ba0699e61b29, type: 3}
       propertyPath: m_Color.b
       value: 0

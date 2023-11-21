@@ -236,6 +236,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b22308366acbfa44789ec514c1a46129, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  width: 8
+  height: 8
+  OnMoveComplete:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &2008949127
 Transform:
   m_ObjectHideFlags: 0
@@ -258,6 +263,18 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2643999207443715728, guid: a6f8855daf904b44faaa689ed63cc93e, type: 3}
+      propertyPath: wdith
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 2643999207443715728, guid: a6f8855daf904b44faaa689ed63cc93e, type: 3}
+      propertyPath: width
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 2643999207443715728, guid: a6f8855daf904b44faaa689ed63cc93e, type: 3}
+      propertyPath: height
+      value: 8
+      objectReference: {fileID: 0}
     - target: {fileID: 2643999207443715728, guid: a6f8855daf904b44faaa689ed63cc93e, type: 3}
       propertyPath: gameControl
       value: 
