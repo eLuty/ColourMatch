@@ -236,8 +236,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b22308366acbfa44789ec514c1a46129, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 8
-  height: 8
+  _width: 8
+  _height: 8
   OnMoveComplete:
     m_PersistentCalls:
       m_Calls: []

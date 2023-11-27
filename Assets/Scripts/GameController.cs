@@ -9,30 +9,34 @@ using UnityEngine.Events;
 
 public class GameController : MonoBehaviour
 {
-    // Game Vars
-    [SerializeField] private int width;
-    [SerializeField] private int height;
+    // Core Game Vars
+    [SerializeField] private int _width;
+    [SerializeField] private int _height;
 
     private static GameController gameControl;
 
+    private GameObject[,] allSquares;
+    public GameObject[,] allPieces;
+
     public UnityEvent OnMoveComplete;
 
-    private GameObject[,] allSquares;
-    private GameObject[,] allPieces;
-
+    // Move System Vars
     private GameObject pieceOne = null;
     private GameObject pieceTwo = null;
-
-    private bool isHorizontalMatch = false;
-    private bool isVerticalMatch = false;
-
-    [SerializeField] private List<GameObject> horizontalMatches = new List<GameObject>();
-    [SerializeField] private List<GameObject> verticalMatches = new List<GameObject>();
 
     private Square originSquare;
 
     private int moveCompleteCount = 0;
     private bool movingPieces = false;
+
+    // Match System Vars
+    private List<GameObject> matchedPieces = new List<GameObject>();
+
+    //private bool isPieceOneMatched = false;
+    //private bool isPieceTwoMatched = false;
+    private bool undoMove = false;
+
+    private int matchCount = 0;
 
     // Init
     private void Awake()
@@ -48,7 +52,7 @@ public class GameController : MonoBehaviour
 
         if (Input.GetKeyDown("space"))
         {
-            ClearPieces();
+            ResetTurnVars();
         }
     }
 
@@ -98,6 +102,7 @@ public class GameController : MonoBehaviour
         }
     }
 
+
     // Checkes if the selected pieces are a good selection for a move. If not, the second piece becomes the new pieceOne and the piece selection resets.
     private void CheckLegalMove()
     {
@@ -122,6 +127,8 @@ public class GameController : MonoBehaviour
 
     private void MovePieces(GameObject pieceOne, GameObject pieceTwo)
     {
+        movingPieces = true;
+
         // Set vars for piece one move - reminder: it's moving to pieceTwo location
         Vector2 destinationOne = pieceTwo.transform.position;
 
@@ -135,32 +142,31 @@ public class GameController : MonoBehaviour
 
     private void MovementComplete()
     {
-        
-
         moveCompleteCount++;
         if(moveCompleteCount >= 2)
         {
-
-            Debug.Log("MovementComplete()");
-
             moveCompleteCount = 0;
-
 
             // Turn off square highlight
             originSquare.SwitchSprite(false);
 
-            // update piece array & calculate matches
+            // Update piece array & calculate matches
             UpdateArrayPosition(pieceOne);
             UpdateArrayPosition(pieceTwo);
 
+            if (!undoMove)
+            {
+                bool isPieceOneMatched = CheckPieceMatches(pieceOne);
+                bool isPieceTwoMatched = CheckPieceMatches(pieceTwo);
 
-
-            CalculateMatches(pieceOne);
-            CalculateMatches(pieceTwo);
-
-            // finalize move
-            // TODO: move this line to the end of the process
-            ClearPieces();
+                FinalizeTurn(isPieceOneMatched, isPieceTwoMatched);
+            }
+            else
+            {
+                undoMove = false;
+                ResetTurnVars();
+                //EndTurn();
+            }
         }
     }
 
@@ -172,105 +178,124 @@ public class GameController : MonoBehaviour
         allPieces[newX, newY] = piece;
     }
 
-    private void CalculateMatches(GameObject piece)
+
+
+    private bool CheckPieceMatches(GameObject originPiece)
     {
-        Debug.Log("CalculateMatches()");
+        List<GameObject> horizontalMatches = CheckHorizontalMatches(originPiece);
+        List<GameObject> verticalMatches = CheckVerticalMatches(originPiece);
 
-        Debug.Log("Calculating matches for piece: " + piece);
+        bool isHorizontalMatch = EvaluateMatches(horizontalMatches);
+        bool isVerticalMatch = EvaluateMatches(verticalMatches);
 
-        int x = (int)piece.transform.position.x;
-        int y = (int)piece.transform.position.y;
-
-        List<GameObject> rightMatches = CheckMatches(x + 1, x + 2, y, y, piece);
-        List<GameObject> leftMatches = CheckMatches(x - 2, x - 1, y, y, piece);
-        List<GameObject> upMatches = CheckMatches(x, x, y + 1, y + 2, piece);
-        List<GameObject> downMatches = CheckMatches(x, x, y - 2, y - 1, piece);
-
-        List<GameObject> horizontalMatches = new List<GameObject> { piece };
-        horizontalMatches.AddRange(rightMatches);
-        horizontalMatches.AddRange(leftMatches);
-
-        List<GameObject> verticalMatches = new List<GameObject> { piece };
-        verticalMatches.AddRange(upMatches);
-        verticalMatches.AddRange(downMatches);
-
-        Debug.Log("horizontalMatches: " + horizontalMatches);
-        Debug.Log("verticalMatches: " + verticalMatches);
-
-        //EvaluateMatches(horizontalMatches);
-        //EvaluateMatches(verticalMatches);
-    }
-
-    private List<GameObject> CheckMatches(int startX, int endX, int startY, int endY, GameObject originPiece)
-    {
-        List<GameObject> matches = new List<GameObject>();
-        for (int x = startX; x <= endX; x++)
+        if(isHorizontalMatch || isVerticalMatch)
         {
-            for (int y = startY; y <= endY; y++)
+            matchedPieces.Add(originPiece);
+            return true;
+        }
+        else { return false; }
+    }
+
+    private List<GameObject> CheckHorizontalMatches(GameObject originPiece) 
+    {
+        List<GameObject> horizontalMatches = new List<GameObject>();
+        int originX = (int)originPiece.transform.position.x;
+        int originY = (int)originPiece.transform.position.y;
+
+        // check right
+        int maxRight = originX + 2;
+        for(int x = originX + 1; x <= maxRight; x++)
+        {
+            if (x < _width && originPiece.CompareTag(allPieces[x, originY].tag))
             {
-                if (x >= 0 && x < width && y >= 0 && y < height)
-                {
-                    // get piece and check for match
-                    if (originPiece.CompareTag(allPieces[x, y].tag))
-                    {
-                        matches.Add(allPieces[x,y]);
-                    }
-                }
+                horizontalMatches.Add(allPieces[x, originY]);
             }
+            else
+                break;
         }
 
-        return matches;
+        // check left
+        int maxLeft = originX - 2;
+        for (int x = originX - 1; x >= maxLeft; x--)
+        {
+            if (x >= 0 && originPiece.CompareTag(allPieces[x, originY].tag))
+                horizontalMatches.Add(allPieces[x, originY]);
+            else
+                break;
+        }
+
+        return horizontalMatches;
     }
 
-    private void EvaluateMatches(List<GameObject> matches)
+    private List<GameObject> CheckVerticalMatches(GameObject originPiece)
     {
-        Debug.Log("EvaluateMatches()");
-        Debug.Log("matches: " + matches);
+        List<GameObject> verticalMatches = new List<GameObject>();
+        int originX = (int)originPiece.transform.position.x;
+        int originY = (int)originPiece.transform.position.y;
 
-        bool isMatch = false;
-        switch (matches.Count) {
-            case 3:
-                // basic match
-                //Debug.Log("Match 3!");
-
-                // add points 
-                // clear matched list
-                isMatch = true;
-                break;
-
-            case 4:
-                // match 4 - give bonus
-                //Debug.Log("Match 4!!");
-                isMatch = true;
-                break;
-
-            case 5:
-                // match 5 - mega bonus!
-                //Debug.Log("Match 5!!!");
-                isMatch = true;
-                break;
-
-            default:
-                // no match
-                //Debug.Log("NO MATCH -- UNDO MOVE");
-
-
+        // check up
+        int maxUp = originY + 2;
+        for (int y = originY + 1; y <= maxUp; y++)
+        {
+            if (y < _height && originPiece.CompareTag(allPieces[originX, y].tag))
+                verticalMatches.Add(allPieces[originX, y]);
+            else
                 break;
         }
 
-        if (isMatch)
-            DestroyMatchedPieces(matches);
+        // check down
+        int maxDown = originY - 2;
+        for (int y = originY - 1; y >= maxDown; y--)
+        {
+            if (y >= 0 && originPiece.CompareTag(allPieces[originX, y].tag))
+                verticalMatches.Add(allPieces[originX, y]);
+            else
+                break;
+        }
+
+        return verticalMatches;
+    }
+
+    private bool EvaluateMatches(List<GameObject> matches)
+    {
+        // Remember to include origin piece in count.
+        if(matches.Count + 1 >= 3)
+        {
+            matchedPieces.AddRange(matches);
+            return true;
+        }
+        else { return false; }
+    }
+
+    private void FinalizeTurn(bool pieceOneMatch, bool pieceTwoMatch)
+    {
+        if (pieceOneMatch || pieceTwoMatch)
+        {
+            DestroyMatchedPieces();
+            ResetTurnVars();
+        }
         else
-            // no matches, now what?
-            matches.Clear();
+        {
+            // Undo move
+            undoMove = true;
+            MovePieces(pieceOne, pieceTwo);
+        }
+
+        // I don't know about this sequence... revise this later
+        //ResetTurnVars();
     }
 
-    private void DestroyMatchedPieces(List<GameObject> matches)
+    private void DestroyMatchedPieces()
     {
-        foreach (GameObject piece in matches)
+        foreach (GameObject piece in matchedPieces)
         {
             Destroy(allPieces[(int)piece.transform.position.x, (int)piece.transform.position.y]);
         }
+    }
+
+    private void EndTurn()
+    {
+        ResetTurnVars();
     }
 
     private void ClearPieces()
@@ -278,5 +303,20 @@ public class GameController : MonoBehaviour
         pieceOne = null;
         pieceTwo = null;
         originSquare = null;
+    }
+
+    // Method used for testing/debugging only
+    private void ResetTurnVars()
+    {
+        movingPieces = false;
+
+        pieceOne = null;
+        pieceTwo = null;
+        originSquare = null;
+
+        //isPieceOneMatched = false;
+        //isPieceTwoMatched = false;
+
+        matchedPieces.Clear();
     }
 }
