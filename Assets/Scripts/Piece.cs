@@ -21,6 +21,7 @@ public class Piece : MonoBehaviour
     
     private void Start()
     {
+        gamePiece = this.gameObject;
         SetPositionData(gamePiece.transform.position);
     }
 
