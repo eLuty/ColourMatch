@@ -18,6 +18,9 @@ public class Piece : MonoBehaviour
     private Vector2 destinationPosition;
 
     private bool isMoving;
+
+    // Matched vars
+    public bool isMatched = false;
     
     private void Start()
     {
@@ -42,6 +45,7 @@ public class Piece : MonoBehaviour
         }
     }
 
+    // Sets the position data for the game piece
     private void SetPositionData(Vector2 newPosition)
     {
         homePosition = newPosition;
@@ -49,25 +53,31 @@ public class Piece : MonoBehaviour
         y = (int)newPosition.y;
     }
 
+    // Registers mouse click on game piece, passes the selection to the game controller
     private void OnMouseDown()
     {
         gameControl.PieceSelected(gamePiece);
     }
 
+    // Initiates the movement process for the game piece
     public void StartMove(Vector2 destination)
     {
         destinationPosition = destination;
         isMoving = true;
     }
 
+    // Finishes the move piece process
     private void FinishMove()
     {
         isMoving = false;
 
+        // Directly set the position so everything lines up neatly
         gamePiece.transform.position = destinationPosition;
         SetPositionData(destinationPosition);
-         
-        gameControl.OnMoveComplete.Invoke();
+
+        // Let the game controller know movement is complete
+        //gameControl.OnMoveComplete.Invoke();
+        gameControl.MovementComplete(gamePiece);
     }
 
 }

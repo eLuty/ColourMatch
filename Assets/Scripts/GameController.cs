@@ -1,8 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Security;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UIElements;
 
 public class GameController : MonoBehaviour
 {
@@ -18,10 +21,10 @@ public class GameController : MonoBehaviour
     [SerializeField] private GameObject[] pieces;
 
     private GameObject[,] allSquares;
-    private GameObject[,] allPieces;
+    public GameObject[,] allPieces;
 
     // Move System Vars
-    public UnityEvent OnMoveComplete;
+    //public UnityEvent OnMoveComplete;
 
     private GameObject pieceOne = null;
     private GameObject pieceTwo = null;
@@ -29,20 +32,27 @@ public class GameController : MonoBehaviour
     private Square originSquare;
 
     private int moveCompleteCount = 0;
-    private bool movingPieces = false;
+    private int undoCount = 0;
 
     // Match System Vars
-    private List<GameObject> matchedPieces = new List<GameObject>();
+    //private List<GameObject> matchedPieces = new List<GameObject>();
 
     private bool undoMove = false;
+
+    private int undoMoveCount = 0;
+
+    // Scoring variables
+    public int currentScore = 0;
+    [SerializeField] private int basicMatchScore;
+
+
 
     // Init
     private void Awake()
     {
-
-        // SLOPPY
+        // SLOPPY - DI this
         gameControl = this;
-        gameControl.OnMoveComplete.AddListener(MovementComplete);
+        //gameControl.OnMoveComplete.AddListener(MovementComplete);
 
         // Set the board
         allSquares = new GameObject[_width, _height];
@@ -58,8 +68,10 @@ public class GameController : MonoBehaviour
 
         if (Input.GetKeyDown("space"))
         {
-            ResetTurnVars();
+            EndTurn();
         }
+
+
     }
 
     // Game board set up
@@ -79,6 +91,7 @@ public class GameController : MonoBehaviour
         }
     }
 
+    // Add game pieces to the board
     private void CreateGamePieces()
     {
         for(int x = 0; x < _width; x++)
@@ -102,11 +115,7 @@ public class GameController : MonoBehaviour
         }
     }
 
-    private void SpawnGameObject()
-    {
-
-    }
-
+    // Check to make sure no more than 2 pieces of the same type get placed next to one another
     private bool CheckPiece(int x, int y, GameObject piece)
     {
         if (x <= 1 && y > 1)
@@ -144,64 +153,33 @@ public class GameController : MonoBehaviour
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-    // Sets the allSquares 2D array with data from the Board GameObject.
-    //public void SetObjectArray(int width, int height, GameObject[,] objectArray, bool isSettingSquares)
-    //{
-    //    if (isSettingSquares)
-    //    {
-    //        allSquares = new GameObject[width, height];
-    //        allSquares = objectArray;
-    //    }
-    //    else
-    //    {
-    //        allPieces = new GameObject[width, height];
-    //        allPieces = objectArray;
-    //    }
-    //}
-
     // Handles when a game piece is selected. Allocates the proper handling.
     public void PieceSelected(GameObject piece)
     {
-        if (!movingPieces)
+        if (pieceOne == null)
         {
-            if (pieceOne == null)
-            {
-                // First piece selected.
-                int originX = piece.GetComponent<Piece>().x;
-                int originY = piece.GetComponent<Piece>().y;
-                originSquare = allSquares[originX, originY].GetComponent<Square>();
-                originSquare.SwitchSprite(true);
+            // First piece selected.
+            int originX = piece.GetComponent<Piece>().x;
+            int originY = piece.GetComponent<Piece>().y;
+            originSquare = allSquares[originX, originY].GetComponent<Square>();
+            originSquare.SwitchSprite(true);
 
-                pieceOne = piece;
-            }
-            else if (piece != pieceOne && pieceTwo == null)
-            {
-                // Second piece selected - check if it's a good selection.
-                pieceTwo = piece;
-                CheckLegalMove();
+            pieceOne = piece;
+        }
+        else if (piece != pieceOne && pieceTwo == null)
+        {
+            // Second piece selected - check if it's a good selection.
+            pieceTwo = piece;
+            CheckLegalMove();
 
-            }
-            else if (piece == pieceOne)
-            {
-                // Origin piece was selected again - deselect.
-                originSquare.SwitchSprite(false);
-                ClearPieces();
-            }
+        }
+        else if (piece == pieceOne)
+        {
+            // Origin piece was selected again - deselect.
+            originSquare.SwitchSprite(false);
+            EndTurn();
         }
     }
-
 
     // Checkes if the selected pieces are a good selection for a move. If not, the second piece becomes the new pieceOne and the piece selection resets.
     private void CheckLegalMove()
@@ -214,59 +192,43 @@ public class GameController : MonoBehaviour
 
         if(xDiff == 1 && yDiff == 0 || xDiff == 0 && yDiff == 1)
         {
-            MovePieces(pieceOne, pieceTwo);
+            MovePiece(pieceOne, pieceTwo.transform.position);
+            MovePiece(pieceTwo, pieceOne.transform.position);
         }
         else
         {
             GameObject newOriginPiece = pieceTwo;
             originSquare.SwitchSprite(false);
-            ClearPieces();
+
+            // Reset turn
+            EndTurn();
             PieceSelected(newOriginPiece);
         }
     }
 
-    private void MovePieces(GameObject pieceOne, GameObject pieceTwo)
+    private void MovePiece(GameObject piece, Vector2 destination)
     {
-        movingPieces = true;
-
-        // Set vars for piece one move - reminder: it's moving to pieceTwo location
-        Vector2 destinationOne = pieceTwo.transform.position;
-
-        // Set vars for piece two move
-        Vector2 destinationTwo = pieceOne.transform.position;
-
-        //Start Moves
-        pieceOne.GetComponent<Piece>().StartMove(destinationOne);
-        pieceTwo.GetComponent<Piece>().StartMove(destinationTwo);
+        piece.GetComponent<Piece>().StartMove(destination);
     }
 
-    private void MovementComplete()
+    public void MovementComplete(GameObject piece)
     {
-        moveCompleteCount++;
-        if(moveCompleteCount >= 2)
+        UpdateArrayPosition(piece);
+
+        if (!undoMove)
         {
-            moveCompleteCount = 0;
-
-            // Turn off square highlight
-            originSquare.SwitchSprite(false);
-
-            // Update piece array positions
-            UpdateArrayPosition(pieceOne);
-            UpdateArrayPosition(pieceTwo);
-
-            if (!undoMove)
-            {
-                // Check for matches & finalize the turn
-                bool isPieceOneMatched = CheckPieceMatches(pieceOne);
-                bool isPieceTwoMatched = CheckPieceMatches(pieceTwo);
-
-                FinalizeTurn(isPieceOneMatched, isPieceTwoMatched);
-            }
-            else
+            CheckForMatch(piece);
+        }
+        else
+        {
+            undoMoveCount++;
+            if(undoMoveCount >= 2)
             {
                 undoMove = false;
-                ResetTurnVars();
+                undoMoveCount = 0;
 
+                // End turn
+                EndTurn();
             }
         }
     }
@@ -279,25 +241,36 @@ public class GameController : MonoBehaviour
         allPieces[newX, newY] = piece;
     }
 
-    private bool CheckPieceMatches(GameObject originPiece)
+    private void CheckForMatch(GameObject originPiece)
     {
         List<GameObject> horizontalMatches = CheckHorizontalMatches(originPiece);
-        List<GameObject> verticalMatches = CheckVerticalMatches(originPiece);
-
         bool isHorizontalMatch = EvaluateMatches(horizontalMatches);
+
+        List<GameObject> verticalMatches = CheckVerticalMatches(originPiece);
         bool isVerticalMatch = EvaluateMatches(verticalMatches);
 
-        if(isHorizontalMatch || isVerticalMatch)
+        if (isHorizontalMatch || isVerticalMatch)
         {
-            matchedPieces.Add(originPiece);
-            return true;
+            RemoveMatches();
         }
-        else { return false; }
+        else
+        {
+            if (originPiece == pieceOne || originPiece == pieceTwo)
+            {
+                // undo move
+                UndoMove();
+            }
+            else
+            {
+                // end turn
+                EndTurn();
+            }
+        }
     }
 
     private List<GameObject> CheckHorizontalMatches(GameObject originPiece) 
     {
-        List<GameObject> horizontalMatches = new List<GameObject>();
+        List<GameObject> horizontalMatches = new List<GameObject> { originPiece };
         int originX = (int)originPiece.transform.position.x;
         int originY = (int)originPiece.transform.position.y;
 
@@ -305,7 +278,7 @@ public class GameController : MonoBehaviour
         int maxRight = originX + 2;
         for(int x = originX + 1; x <= maxRight; x++)
         {
-            if (x < _width && originPiece.CompareTag(allPieces[x, originY].tag))
+            if (x < _width && allPieces[x, originY] != null && originPiece.CompareTag(allPieces[x, originY].tag))
             {
                 horizontalMatches.Add(allPieces[x, originY]);
             }
@@ -317,7 +290,7 @@ public class GameController : MonoBehaviour
         int maxLeft = originX - 2;
         for (int x = originX - 1; x >= maxLeft; x--)
         {
-            if (x >= 0 && originPiece.CompareTag(allPieces[x, originY].tag))
+            if (x >= 0 && allPieces[x, originY] != null && originPiece.CompareTag(allPieces[x, originY].tag))
                 horizontalMatches.Add(allPieces[x, originY]);
             else
                 break;
@@ -328,7 +301,7 @@ public class GameController : MonoBehaviour
 
     private List<GameObject> CheckVerticalMatches(GameObject originPiece)
     {
-        List<GameObject> verticalMatches = new List<GameObject>();
+        List<GameObject> verticalMatches = new List<GameObject> { originPiece };
         int originX = (int)originPiece.transform.position.x;
         int originY = (int)originPiece.transform.position.y;
 
@@ -336,7 +309,7 @@ public class GameController : MonoBehaviour
         int maxUp = originY + 2;
         for (int y = originY + 1; y <= maxUp; y++)
         {
-            if (y < _height && originPiece.CompareTag(allPieces[originX, y].tag))
+            if (y < _height && allPieces[originX, y] != null && originPiece.CompareTag(allPieces[originX, y].tag))
                 verticalMatches.Add(allPieces[originX, y]);
             else
                 break;
@@ -346,7 +319,7 @@ public class GameController : MonoBehaviour
         int maxDown = originY - 2;
         for (int y = originY - 1; y >= maxDown; y--)
         {
-            if (y >= 0 && originPiece.CompareTag(allPieces[originX, y].tag))
+            if (y >= 0 && allPieces[originX, y] != null && originPiece.CompareTag(allPieces[originX, y].tag))
                 verticalMatches.Add(allPieces[originX, y]);
             else
                 break;
@@ -357,90 +330,111 @@ public class GameController : MonoBehaviour
 
     private bool EvaluateMatches(List<GameObject> matches)
     {
-        // Remember to include origin piece in count.
-        if(matches.Count + 1 >= 3)
+        if (matches.Count >= 3)
         {
-            matchedPieces.AddRange(matches);
+            SetScore(matches.Count);
+            foreach (GameObject piece in matches)
+            {
+                piece.GetComponent<Piece>().isMatched = true;
+            }
             return true;
         }
         else { return false; }
     }
 
-    private void FinalizeTurn(bool pieceOneMatch, bool pieceTwoMatch)
+    private void SetScore(int matchCount)
     {
-        if (pieceOneMatch || pieceTwoMatch)
-        {
-            DestroyMatchedPieces();
-            //ResetTurnVars();
-        }
-        else
-        {
-            // Undo move
-            undoMove = true;
-            MovePieces(pieceOne, pieceTwo);
+        int points = 0;
+
+        switch (matchCount) {
+            case 3:
+                // basic score
+                points = basicMatchScore;
+                break;
+
+            case 4:
+                // basic score + 50
+                points = basicMatchScore + 50;
+                currentScore += points;
+                break;
+
+            case 5:
+                // basic score + 100
+                points = basicMatchScore + 100;
+                break;
+
+            default:
+                Debug.Log("score count outside the norm. hMatch count: " + matchCount);
+                break;
         }
 
-        // I don't know about this sequence... revise this later
-        //ResetTurnVars();
+        currentScore += points;
     }
 
-    private void DestroyMatchedPieces()
+    private void UndoMove()
     {
-        foreach (GameObject piece in matchedPieces)
+        undoCount++;
+        if(undoCount >= 2)
         {
-            Destroy(allPieces[(int)piece.transform.position.x, (int)piece.transform.position.y]);
+            undoCount = 0;
+
+            MovePiece(pieceOne, pieceTwo.transform.position);
+            MovePiece(pieceTwo, pieceOne.transform.position);
+        }
+    }
+
+    private void RemoveMatches()
+    {
+        for (int x = 0; x < _width; x++)
+        {
+            for (int y = 0; y < _height; y++)
+            {
+                Piece gamePiece = allPieces[x, y].GetComponent<Piece>();
+                if (allPieces[x, y] != null && gamePiece.isMatched)
+                {
+                    Destroy(allPieces[x, y]);
+                    allPieces[x, y] = null;
+                }
+            }
         }
 
         StartCoroutine(CheckForNulls());
     }
 
-    //private void EndTurn()
-    //{
-    //    ResetTurnVars();
-
-        
-    //}
-
-    private void ClearPieces()
-    {
-        pieceOne = null;
-        pieceTwo = null;
-        originSquare = null;
-    }
-
-    // Method used for testing/debugging only
-    private void ResetTurnVars()
-    {
-        movingPieces = false;
-
-        pieceOne = null;
-        pieceTwo = null;
-        originSquare = null;
-
-        //isPieceOneMatched = false;
-        //isPieceTwoMatched = false;
-
-        matchedPieces.Clear();
-    }
-
     private IEnumerator CheckForNulls()
     {
-        Debug.Log("Checking for nulls...");
-
         int nullSpaces = 0;
-        for(int x = 0; x < _width; x++)
+        for (int x = 0; x < _width; x++)
         {
-            for(int y = 0; y < _height; y++)
+            for (int y = 0; y < _height; y++)
             {
-
                 if (allPieces[x, y] == null)
                 {
                     nullSpaces++;
                 }
+                else if (nullSpaces > 0)
+                {
+                    // move the next piece down nullSpaces 
+                    GameObject piece = allPieces[x, y];
+                    Vector2 destination = new Vector2(piece.transform.position.x, piece.transform.position.y - nullSpaces);
+                    MovePiece(piece, destination);
+                }
             }
-        }
-        yield return new WaitForSeconds(.4f);
 
-        Debug.Log("Null spaces: " + nullSpaces);
+            // reset null space counter after each column
+            nullSpaces = 0;
+        }
+        yield return new WaitForSeconds(.8f);
+        //EndTurn();
+    }
+
+    private void EndTurn()
+    {
+
+        Debug.Log("end turn!");
+
+        pieceOne = null;
+        pieceTwo = null;
+        originSquare = null;
     }
 }
