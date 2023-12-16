@@ -31,7 +31,7 @@ public class Piece : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (isMoving)
+        if(isMoving)
         {
             if (Vector2.Distance(gamePiece.transform.position, destinationPosition) > 0.01f)
             {
@@ -42,6 +42,11 @@ public class Piece : MonoBehaviour
             {
                 FinishMove();
             }
+        }
+
+        if (isMatched)
+        {
+            transform.Rotate(0, 0.5f, 0);
         }
     }
 

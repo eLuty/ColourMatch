@@ -21,7 +21,7 @@ public class ObjectPool : MonoBehaviour
     {
         pooledObjects = new List<GameObject>();
         GameObject tmp;
-        for(int i = 0; i < amountToPool; i++)
+        for (int i = 0; i < amountToPool; i++)
         {
             tmp = Instantiate(objectToPool);
             tmp.SetActive(false);
@@ -31,7 +31,7 @@ public class ObjectPool : MonoBehaviour
 
     public GameObject GetPooledObject()
     {
-        for(int i = 0; i < amountToPool; i++)
+        for (int i = 0; i < amountToPool; i++)
         {
             if (!pooledObjects[i].activeInHierarchy)
             {
