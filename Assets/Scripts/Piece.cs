@@ -14,8 +14,8 @@ public class Piece : MonoBehaviour
     public int x;
     public int y;
 
-    private Vector2 homePosition;
-    private Vector2 destinationPosition;
+    public Vector2 homePosition;
+    public Vector2 destinationPosition;
 
     private bool isMoving;
 
@@ -36,7 +36,7 @@ public class Piece : MonoBehaviour
             if (Vector2.Distance(gamePiece.transform.position, destinationPosition) > 0.01f)
             {
                 Vector2 direction = (destinationPosition - homePosition).normalized;
-                transform.Translate(direction * 4 * Time.deltaTime);
+                transform.Translate(4 * Time.deltaTime * direction);
             }
             else
             {
@@ -46,7 +46,7 @@ public class Piece : MonoBehaviour
 
         if (isMatched)
         {
-            transform.Rotate(0, 0.5f, 0);
+            transform.Rotate(0, 0.4f, 0);
         }
     }
 

@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -28,14 +29,13 @@ public class GameController : MonoBehaviour
 
     public bool piecesMoving = false;
 
-    private bool processingTurn = false;
-
     private GameObject pieceOne = null;
     private GameObject pieceTwo = null;
 
     private Square originSquare;
 
     public List<GameObject> movingPieces = new List<GameObject>();
+    public List<GameObject> piecesToCheck = new List<GameObject>();
 
     private int undoCount = 0;
 
@@ -43,7 +43,6 @@ public class GameController : MonoBehaviour
     //private List<GameObject> matchedPieces = new List<GameObject>();
 
     private bool undoMove = false;
-
     private int undoMoveCount = 0;
 
     // Scoring variables
@@ -80,8 +79,8 @@ public class GameController : MonoBehaviour
         {
             // all pieces are done moving, remove matches.
             piecesMoving = false;
+            CheckForMatches();
 
-            StartCoroutine(RemoveMatches());
         }
     }
 
@@ -115,12 +114,16 @@ public class GameController : MonoBehaviour
                     pieceToUse = UnityEngine.Random.Range(0, pieces.Length);
                 }
 
-                Vector2 spawnPosition = new Vector2(x, y);
-                GameObject newPiece = Instantiate(pieces[pieceToUse], spawnPosition, Quaternion.identity) as GameObject;
-                newPiece.transform.parent = gameBoard.transform;
-                newPiece.GetComponent<Piece>().gameControl = this;
-                newPiece.name = pieces[pieceToUse].name + "(" + x + ", " + y + ")";
+                //Vector2 spawnPosition = new Vector2(x, y);
+                //GameObject newPiece = Instantiate(pieces[pieceToUse], spawnPosition, Quaternion.identity) as GameObject;
+                //newPiece.transform.parent = gameBoard.transform;
+                //newPiece.GetComponent<Piece>().gameControl = this;
+                //newPiece.name = pieces[pieceToUse].name + "(" + x + ", " + y + ")";
 
+                //allPieces[x, y] = newPiece;
+
+                GameObject newPiece = SpawnGamePiece(x, y, pieceToUse);
+                newPiece.name = pieces[pieceToUse].name + "(" + x + ", " + y + ")";
                 allPieces[x, y] = newPiece;
             }
         }
@@ -162,6 +165,19 @@ public class GameController : MonoBehaviour
         {
             return false;
         }
+    }
+
+    private GameObject SpawnGamePiece(int spawnX, int spawnY, int pieceToUse)
+    {
+        //Debug.Log("Spawning at: (" + spawnX + ", " + spawnY + ")");
+
+        Vector2 spawnPosition = new Vector2(spawnX, spawnY);
+        GameObject newPiece = Instantiate(pieces[pieceToUse], spawnPosition, Quaternion.identity) as GameObject;
+        newPiece.transform.parent = gameBoard.transform;
+        newPiece.GetComponent<Piece>().gameControl = this;
+        
+        //allPieces[x, y] = newPiece;
+        return newPiece;
     }
 
     // Handles when a game piece is selected. Allocates the proper handling.
@@ -206,8 +222,6 @@ public class GameController : MonoBehaviour
             originSquare.SwitchSprite(false);
             originSquare = null;
 
-            piecesMoving = true;
-
             MovePiece(pieceOne, pieceTwo.transform.position);
             MovePiece(pieceTwo, pieceOne.transform.position);
         }
@@ -224,6 +238,8 @@ public class GameController : MonoBehaviour
 
     private void MovePiece(GameObject piece, Vector2 destination)
     {
+        if(!piecesMoving) { piecesMoving = true; }
+
         movingPieces.Add(piece);
         piece.GetComponent<Piece>().StartMove(destination);
     }
@@ -231,24 +247,9 @@ public class GameController : MonoBehaviour
     public void MovementComplete(GameObject piece)
     {
         UpdateArrayPosition(piece);
-        CheckForMatch(piece);
 
-        //if (!undoMove)
-        //{
-        //    CheckForMatch(piece);
-        //}
-        //else
-        //{
-        //    //undoMoveCount++;
-        //    //if(undoMoveCount >= 2)
-        //    //{
-        //    //    undoMove = false;
-        //    //    undoMoveCount = 0;
-
-        //    //    // End turn
-        //    //    EndTurn();
-        //    //}
-        //}
+        movingPieces.Remove(piece);
+        piecesToCheck.Add(piece);
     }
 
     private void UpdateArrayPosition(GameObject piece)
@@ -259,48 +260,22 @@ public class GameController : MonoBehaviour
         allPieces[newX, newY] = piece;
     }
 
-    private void CheckForMatch(GameObject originPiece)
+    private void CheckForMatches()
     {
+        Debug.Log("CheckForMatches()");
 
-        List < GameObject > horizontalMatches = GetHorizontalMatches(originPiece);
-        bool isHorizontalMatch = SetMatches(horizontalMatches);
+        for (int i = 0; i < piecesToCheck.Count; i++)
+        {
+            GameObject checkPiece = piecesToCheck[i];
+            GetHorizontalMatches(checkPiece);
+            GetVerticalMatches(checkPiece);
+        }
 
-        List<GameObject> verticalMatches = GetVerticalMatches(originPiece);
-        bool isVerticalMatch = SetMatches(verticalMatches);
-
-        movingPieces.Remove(originPiece);
-
-        //    List<GameObject> horizontalMatches = GetHorizontalMatches(originPiece);
-        //    bool isHorizontalMatch = SetMatches(horizontalMatches);
-
-        //    List<GameObject> verticalMatches = GetVerticalMatches(originPiece);
-        //    bool isVerticalMatch = SetMatches(verticalMatches);
-
-        //    movingPieces.Remove(originPiece);
-
-        //if (isHorizontalMatch || isVerticalMatch)
-        //{
-        //    //RemoveMatches();
-
-        //    // there is a match!
-
-        //}
-        //else
-        //{
-        //    //if (originPiece == pieceOne || originPiece == pieceTwo)
-        //    //{
-        //    //    // undo move
-        //    //    UndoMove();
-        //    //}
-        //    //else
-        //    //{
-        //    //    // end turn
-        //    //    EndTurn();
-        //    //}
-        //}
+        piecesToCheck.Clear();
+        StartCoroutine(RemoveMatches());
     }
 
-    private List<GameObject> GetHorizontalMatches(GameObject originPiece) 
+    private void GetHorizontalMatches(GameObject originPiece)
     {
         List<GameObject> horizontalMatches = new List<GameObject> { originPiece };
         int originX = (int)originPiece.transform.position.x;
@@ -308,7 +283,7 @@ public class GameController : MonoBehaviour
 
         // check right
         int maxRight = originX + 2;
-        for(int x = originX + 1; x <= maxRight; x++)
+        for (int x = originX + 1; x <= maxRight; x++)
         {
             if (x < _width && allPieces[x, originY] != null && originPiece.CompareTag(allPieces[x, originY].tag))
             {
@@ -328,10 +303,12 @@ public class GameController : MonoBehaviour
                 break;
         }
 
-        return horizontalMatches;
+
+        SetMatches(horizontalMatches);
+        //return horizontalMatches;
     }
 
-    private List<GameObject> GetVerticalMatches(GameObject originPiece)
+    private void GetVerticalMatches(GameObject originPiece)
     {
         List<GameObject> verticalMatches = new List<GameObject> { originPiece };
         int originX = (int)originPiece.transform.position.x;
@@ -357,10 +334,11 @@ public class GameController : MonoBehaviour
                 break;
         }
 
-        return verticalMatches;
+        SetMatches(verticalMatches);
+        //return verticalMatches;
     }
 
-    private bool SetMatches(List<GameObject> matches)
+    private void SetMatches(List<GameObject> matches)
     {
         if (matches.Count >= 3)
         {
@@ -369,9 +347,7 @@ public class GameController : MonoBehaviour
             {
                 piece.GetComponent<Piece>().isMatched = true;
             }
-            return true;
         }
-        else { return false; }
     }
 
     private void SetScore(int matchCount)
@@ -402,18 +378,6 @@ public class GameController : MonoBehaviour
         currentScore += points;
     }
 
-    private void HandleMatches()
-    {
-        Debug.Log("HandleMatches called. movingPieces.Count: " + movingPieces.Count);
-
-        if (movingPieces.Count == 0)
-        {
-            Debug.Log("Remove matches now.");
-            //RemoveMatches();
-            StartCoroutine(RemoveMatches());
-        }
-    }
-
     private void UndoMove()
     {
         undoCount++;
@@ -428,8 +392,8 @@ public class GameController : MonoBehaviour
 
     private IEnumerator RemoveMatches()
     {
-        Debug.Log("Removing...");
-        yield return new WaitForSeconds(1.5f);
+        Debug.Log("RemoveMatches()");
+        yield return new WaitForSeconds(0.8f);
 
         for (int x = 0; x < _width; x++)
         {
@@ -437,21 +401,40 @@ public class GameController : MonoBehaviour
             {
                 if (allPieces[x, y] != null && allPieces[x, y].GetComponent<Piece>().isMatched)
                 {
-                    Destroy(allPieces[x, y]);
+                    //Destroy(allPieces[x, y]);
+                    allPieces[x, y].SetActive(false);
                     allPieces[x, y] = null;
                 }
             }
         }
 
-        //StartCoroutine(CheckForNulls());
-        CheckForNulls();
+        StartCoroutine(CheckForNulls());
     }
 
-    private void CheckForNulls()
+    private void ShiftColumnsDown()
     {
-        Debug.Log("Remove complete. Check for nulls...");
-
         int nullSpaces = 0;
+        for (int  x = 0; x < _width; x++)
+        {
+            for (int y = 0; y < _height ; y++)
+            {
+                if (allPieces[x, y] != null)
+                {
+
+                }
+                else
+                {
+                    //spawn then shuffle
+                }
+            }
+        }
+    }
+
+    private IEnumerator CheckForNulls()
+    {
+        Debug.Log("CheckForNulls()");
+        int nullSpaces = 0;
+        int nullCount = 0;
         for (int x = 0; x < _width; x++)
         {
             for (int y = 0; y < _height; y++)
@@ -459,30 +442,55 @@ public class GameController : MonoBehaviour
                 if (allPieces[x, y] == null)
                 {
                     nullSpaces++;
+                    nullCount++;
+                    //int pieceToUse = UnityEngine.Random.Range(0, pieces.Length);
+                    //SpawnGamePiece(x, _height + y, pieceToUse);
                 }
                 else if (nullSpaces > 0)
                 {
                     // move the next piece down nullSpaces 
                     GameObject piece = allPieces[x, y];
                     Vector2 destination = new Vector2(piece.transform.position.x, piece.transform.position.y - nullSpaces);
-                    //MovePiece(piece, destination);
-
-                    Debug.Log("Move down: " + piece.name);
+                    MovePiece(piece, destination);
+                    allPieces[x, y] = null;
                 }
             }
-
             // reset null space counter after each column
             nullSpaces = 0;
         }
-        //yield return new WaitForSeconds(.8f);
+
+        yield return new WaitForSeconds(0.5f);
+        //StartCoroutine(RefillBoard(nullCount));
+        RefillBoard(nullCount);
         //EndTurn();
+    }
+
+    private void RefillBoard(int nullCount)
+    {
+        Debug.Log("RefillBoard()");
+        for (int x = 0; x < _width; x++)
+        {
+            for (int y = 0; y < _height; y++)
+            {
+                if (allPieces[x, y] == null)
+                {
+                    int pieceToUse = UnityEngine.Random.Range(0, pieces.Length);
+                    Vector2 squareLocation = new Vector2(x, y);
+                    GameObject refillPiece = SpawnGamePiece(x, y + nullCount, pieceToUse);
+                    refillPiece.name = pieces[pieceToUse].name + "(" + x + ", " + y + ")";
+
+                    allPieces[x, y] = refillPiece;
+
+                    MovePiece(refillPiece, squareLocation);
+                }
+            }
+        }
+        //yield return new WaitForSeconds(1.0f);
+        EndTurn();
     }
 
     private void EndTurn()
     {
-
-        Debug.Log("end turn!");
-
         pieceOne = null;
         pieceTwo = null;
         originSquare = null;
