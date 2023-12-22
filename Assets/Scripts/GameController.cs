@@ -2,11 +2,8 @@ using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Security;
+using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.UIElements;
 
 public class GameController : MonoBehaviour
 {
@@ -69,18 +66,19 @@ public class GameController : MonoBehaviour
     void Update()
     {
         // Debug controls
-
         if (Input.GetKeyDown("space"))
         {
             EndTurn();
         }
+    }
 
-        if(movingPieces.Count == 0 && piecesMoving)
+    private void LateUpdate()
+    {
+        if (movingPieces.Count == 0 && piecesMoving)
         {
             // all pieces are done moving, remove matches.
             piecesMoving = false;
             CheckForMatches();
-
         }
     }
 
@@ -392,7 +390,6 @@ public class GameController : MonoBehaviour
 
     private IEnumerator RemoveMatches()
     {
-        Debug.Log("RemoveMatches()");
         yield return new WaitForSeconds(0.8f);
 
         for (int x = 0; x < _width; x++)
@@ -408,85 +405,58 @@ public class GameController : MonoBehaviour
             }
         }
 
-        StartCoroutine(CheckForNulls());
+        //StartCoroutine(CheckForNulls());
+        RefillBoard();
     }
 
-    private void ShiftColumnsDown()
+    private void RefillBoard()
     {
         int nullSpaces = 0;
         for (int  x = 0; x < _width; x++)
         {
             for (int y = 0; y < _height ; y++)
             {
-                if (allPieces[x, y] != null)
-                {
-
-                }
-                else
-                {
-                    //spawn then shuffle
-                }
-            }
-        }
-    }
-
-    private IEnumerator CheckForNulls()
-    {
-        Debug.Log("CheckForNulls()");
-        int nullSpaces = 0;
-        int nullCount = 0;
-        for (int x = 0; x < _width; x++)
-        {
-            for (int y = 0; y < _height; y++)
-            {
                 if (allPieces[x, y] == null)
                 {
                     nullSpaces++;
-                    nullCount++;
-                    //int pieceToUse = UnityEngine.Random.Range(0, pieces.Length);
-                    //SpawnGamePiece(x, _height + y, pieceToUse);
                 }
                 else if (nullSpaces > 0)
                 {
-                    // move the next piece down nullSpaces 
-                    GameObject piece = allPieces[x, y];
-                    Vector2 destination = new Vector2(piece.transform.position.x, piece.transform.position.y - nullSpaces);
-                    MovePiece(piece, destination);
-                    allPieces[x, y] = null;
+                    GameObject[] refillArray = new GameObject[nullSpaces];
+
+                    // Spawn refills                    
+                    for (int i = 0; i < nullSpaces; i++)
+                    {
+                        int pieceToUse = UnityEngine.Random.Range(0, pieces.Length);
+                        GameObject refillPiece = SpawnGamePiece(x, _height + i, pieceToUse);
+                        refillArray[i] = refillPiece;
+                    }
+
+                    ShuffleDownColumn(x, y, nullSpaces, refillArray);
                 }
             }
-            // reset null space counter after each column
+
             nullSpaces = 0;
         }
-
-        yield return new WaitForSeconds(0.5f);
-        //StartCoroutine(RefillBoard(nullCount));
-        RefillBoard(nullCount);
-        //EndTurn();
     }
 
-    private void RefillBoard(int nullCount)
+    private void ShuffleDownColumn(int x, int startY, int nullCount, GameObject[] refills)
     {
-        Debug.Log("RefillBoard()");
-        for (int x = 0; x < _width; x++)
+        // shuffle down original column pieces
+        for (int y = startY; y < _height; y++)
         {
-            for (int y = 0; y < _height; y++)
-            {
-                if (allPieces[x, y] == null)
-                {
-                    int pieceToUse = UnityEngine.Random.Range(0, pieces.Length);
-                    Vector2 squareLocation = new Vector2(x, y);
-                    GameObject refillPiece = SpawnGamePiece(x, y + nullCount, pieceToUse);
-                    refillPiece.name = pieces[pieceToUse].name + "(" + x + ", " + y + ")";
-
-                    allPieces[x, y] = refillPiece;
-
-                    MovePiece(refillPiece, squareLocation);
-                }
-            }
+            GameObject piece = allPieces[x, y];
+            Vector2 destination = new Vector2(x, y - nullCount);
+            MovePiece(piece, destination);
+            allPieces[x, y] = null;
         }
-        //yield return new WaitForSeconds(1.0f);
-        EndTurn();
+
+        for (int i = 0; i < refills.Length; i++)
+        {
+            GameObject refill = refills[i];
+            Vector2 destination = new Vector2(x, startY + i);
+            MovePiece(refill, destination);
+        }
     }
 
     private void EndTurn()
