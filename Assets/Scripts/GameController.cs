@@ -2,6 +2,7 @@ using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -19,15 +20,15 @@ public class GameController : MonoBehaviour
     [SerializeField] private GameObject[] pieces;
 
     private GameObject[,] allSquares;
-    public GameObject[,] allPieces;
+    private GameObject[,] allPieces;
 
     // Move System Vars
     //public UnityEvent OnMoveComplete;
 
     public bool piecesMoving = false;
 
-    private GameObject pieceOne = null;
-    private GameObject pieceTwo = null;
+    [SerializeField] private GameObject pieceOne = null;
+    [SerializeField] private GameObject pieceTwo = null;
 
     private Square originSquare;
 
@@ -111,14 +112,6 @@ public class GameController : MonoBehaviour
                 {
                     pieceToUse = UnityEngine.Random.Range(0, pieces.Length);
                 }
-
-                //Vector2 spawnPosition = new Vector2(x, y);
-                //GameObject newPiece = Instantiate(pieces[pieceToUse], spawnPosition, Quaternion.identity) as GameObject;
-                //newPiece.transform.parent = gameBoard.transform;
-                //newPiece.GetComponent<Piece>().gameControl = this;
-                //newPiece.name = pieces[pieceToUse].name + "(" + x + ", " + y + ")";
-
-                //allPieces[x, y] = newPiece;
 
                 GameObject newPiece = SpawnGamePiece(x, y, pieceToUse);
                 newPiece.name = pieces[pieceToUse].name + "(" + x + ", " + y + ")";
@@ -234,6 +227,7 @@ public class GameController : MonoBehaviour
         }
     }
 
+    // Move a piece. Add the piece to movement tracking list.
     private void MovePiece(GameObject piece, Vector2 destination)
     {
         if(!piecesMoving) { piecesMoving = true; }
@@ -258,22 +252,54 @@ public class GameController : MonoBehaviour
         allPieces[newX, newY] = piece;
     }
 
+    // Checks if any of the moved pieces have a match. If a match exists, it is flagged on the piece.
     private void CheckForMatches()
     {
         Debug.Log("CheckForMatches()");
 
+        bool isMatch = false;
+
+        // cycle through moved pieces & look for a horizontal/vertical match
         for (int i = 0; i < piecesToCheck.Count; i++)
         {
             GameObject checkPiece = piecesToCheck[i];
-            GetHorizontalMatches(checkPiece);
-            GetVerticalMatches(checkPiece);
+            bool hMatch = GetHorizontalMatches(checkPiece);
+            bool vMatch = GetVerticalMatches(checkPiece);
+
+            // set flag
+            if (!isMatch && hMatch || vMatch)
+                isMatch = true;
         }
 
         piecesToCheck.Clear();
-        StartCoroutine(RemoveMatches());
+
+        if (isMatch)
+        {
+            Debug.Log("Match!");
+            // 
+            if (pieceOne != null && pieceTwo != null)
+            {
+                pieceOne = null;
+                pieceTwo = null;
+            }
+
+            StartCoroutine(RemoveMatches());
+        }
+        else if (!isMatch && pieceOne != null && pieceTwo != null)
+        {
+            Debug.Log("No Match! UNDO MOVE");
+
+            UndoMove();
+        }
+        else
+        {
+            Debug.Log("No Match! END TURN");
+
+            EndTurn();
+        }
     }
 
-    private void GetHorizontalMatches(GameObject originPiece)
+    private bool GetHorizontalMatches(GameObject originPiece)
     {
         List<GameObject> horizontalMatches = new List<GameObject> { originPiece };
         int originX = (int)originPiece.transform.position.x;
@@ -301,12 +327,15 @@ public class GameController : MonoBehaviour
                 break;
         }
 
-
-        SetMatches(horizontalMatches);
-        //return horizontalMatches;
+        if (horizontalMatches.Count >= 3)
+        {
+            SetMatches(horizontalMatches);
+            return true;
+        }
+        else { return false; }
     }
 
-    private void GetVerticalMatches(GameObject originPiece)
+    private bool GetVerticalMatches(GameObject originPiece)
     {
         List<GameObject> verticalMatches = new List<GameObject> { originPiece };
         int originX = (int)originPiece.transform.position.x;
@@ -332,19 +361,20 @@ public class GameController : MonoBehaviour
                 break;
         }
 
-        SetMatches(verticalMatches);
-        //return verticalMatches;
+        if (verticalMatches.Count >= 3)
+        {
+            SetMatches(verticalMatches);
+            return true;
+        }
+        else { return false; }
     }
 
     private void SetMatches(List<GameObject> matches)
     {
-        if (matches.Count >= 3)
+        SetScore(matches.Count);
+        foreach (GameObject piece in matches)
         {
-            SetScore(matches.Count);
-            foreach (GameObject piece in matches)
-            {
-                piece.GetComponent<Piece>().isMatched = true;
-            }
+            piece.GetComponent<Piece>().isMatched = true;
         }
     }
 
@@ -378,14 +408,21 @@ public class GameController : MonoBehaviour
 
     private void UndoMove()
     {
-        undoCount++;
-        if(undoCount >= 2)
-        {
-            undoCount = 0;
 
-            MovePiece(pieceOne, pieceTwo.transform.position);
-            MovePiece(pieceTwo, pieceOne.transform.position);
-        }
+        MovePiece(pieceOne, pieceTwo.transform.position);
+        MovePiece(pieceTwo, pieceOne.transform.position);
+
+        pieceOne = null;
+        pieceTwo = null;
+
+        //undoCount++;
+        //if(undoCount >= 2)
+        //{
+        //    undoCount = 0;
+
+        //    MovePiece(pieceOne, pieceTwo.transform.position);
+        //    MovePiece(pieceTwo, pieceOne.transform.position);
+        //}
     }
 
     private IEnumerator RemoveMatches()
@@ -405,58 +442,66 @@ public class GameController : MonoBehaviour
             }
         }
 
-        //StartCoroutine(CheckForNulls());
-        RefillBoard();
+        UpdateBoard();
     }
 
-    private void RefillBoard()
+    private void UpdateBoard()
     {
         int nullSpaces = 0;
+        List<GameObject> refillList = new List<GameObject>();
         for (int  x = 0; x < _width; x++)
         {
-            for (int y = 0; y < _height ; y++)
+            for (int y = 0; y < _height; y++)
             {
                 if (allPieces[x, y] == null)
                 {
+                    // null space - spawn & track refill
+                    int pieceToUse = UnityEngine.Random.Range(0, pieces.Length);
+                    int spawnHeight = _height + nullSpaces;
+
+                    GameObject refillPiece = SpawnGamePiece(x, spawnHeight, pieceToUse);
+                    refillPiece.name = refillPiece.name +"(" + x + ", " + y + ")";
+                    refillList.Add(refillPiece);
+
                     nullSpaces++;
+
+                    // check if refills need to be shuffled down
+                    AddRefillsToBoard(y, nullSpaces, refillList);
                 }
                 else if (nullSpaces > 0)
                 {
-                    GameObject[] refillArray = new GameObject[nullSpaces];
+                    // shuffle down column piece
+                    GameObject shufflePiece = allPieces[x, y];
+                    ShuffleDown(shufflePiece, nullSpaces);
+                    allPieces[x, y] = null;
 
-                    // Spawn refills                    
-                    for (int i = 0; i < nullSpaces; i++)
-                    {
-                        int pieceToUse = UnityEngine.Random.Range(0, pieces.Length);
-                        GameObject refillPiece = SpawnGamePiece(x, _height + i, pieceToUse);
-                        refillArray[i] = refillPiece;
-                    }
-
-                    ShuffleDownColumn(x, y, nullSpaces, refillArray);
+                    // check if refills need to be shuffled down
+                    AddRefillsToBoard(y, nullSpaces, refillList);
                 }
             }
 
             nullSpaces = 0;
+            refillList.Clear();
         }
     }
 
-    private void ShuffleDownColumn(int x, int startY, int nullCount, GameObject[] refills)
+    private void AddRefillsToBoard(int y, int nullCount, List<GameObject> refills)
     {
-        // shuffle down original column pieces
-        for (int y = startY; y < _height; y++)
+        if (y == _height - 1 && nullCount > 0)
         {
-            GameObject piece = allPieces[x, y];
-            Vector2 destination = new Vector2(x, y - nullCount);
-            MovePiece(piece, destination);
-            allPieces[x, y] = null;
+            for(int i = 0; i < refills.Count; i++)
+            {
+                GameObject refillPiece = refills[i];
+                ShuffleDown(refillPiece, nullCount);
+            }
         }
+    }
 
-        for (int i = 0; i < refills.Length; i++)
-        {
-            GameObject refill = refills[i];
-            Vector2 destination = new Vector2(x, startY + i);
-            MovePiece(refill, destination);
-        }
+    private void ShuffleDown(GameObject shufflePiece, int shuffleSpaces)
+    {
+        Vector2 shuffleDestination = new Vector2(shufflePiece.transform.position.x, 
+                                                    shufflePiece.transform.position.y - shuffleSpaces);
+        MovePiece(shufflePiece, shuffleDestination);
     }
 
     private void EndTurn()
