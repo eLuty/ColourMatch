@@ -1,9 +1,6 @@
-using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using UnityEngine;
 
 public class GameController : MonoBehaviour
@@ -23,8 +20,6 @@ public class GameController : MonoBehaviour
     private GameObject[,] allPieces;
 
     // Move System Vars
-    //public UnityEvent OnMoveComplete;
-
     public bool piecesMoving = false;
 
     [SerializeField] private GameObject pieceOne = null;
@@ -34,14 +29,6 @@ public class GameController : MonoBehaviour
 
     public List<GameObject> movingPieces = new List<GameObject>();
     public List<GameObject> piecesToCheck = new List<GameObject>();
-
-    private int undoCount = 0;
-
-    // Match System Vars
-    //private List<GameObject> matchedPieces = new List<GameObject>();
-
-    private bool undoMove = false;
-    private int undoMoveCount = 0;
 
     // Scoring variables
     public int currentScore = 0;
@@ -160,8 +147,6 @@ public class GameController : MonoBehaviour
 
     private GameObject SpawnGamePiece(int spawnX, int spawnY, int pieceToUse)
     {
-        //Debug.Log("Spawning at: (" + spawnX + ", " + spawnY + ")");
-
         Vector2 spawnPosition = new Vector2(spawnX, spawnY);
         GameObject newPiece = Instantiate(pieces[pieceToUse], spawnPosition, Quaternion.identity) as GameObject;
         newPiece.transform.parent = gameBoard.transform;
@@ -414,15 +399,6 @@ public class GameController : MonoBehaviour
 
         pieceOne = null;
         pieceTwo = null;
-
-        //undoCount++;
-        //if(undoCount >= 2)
-        //{
-        //    undoCount = 0;
-
-        //    MovePiece(pieceOne, pieceTwo.transform.position);
-        //    MovePiece(pieceTwo, pieceOne.transform.position);
-        //}
     }
 
     private IEnumerator RemoveMatches()
