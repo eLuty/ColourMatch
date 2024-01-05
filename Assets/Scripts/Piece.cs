@@ -5,14 +5,11 @@ public class Piece : MonoBehaviour
     // Game vars
     public GameController gameControl;
 
-    public GameObject gamePiece;
+    private GameObject gamePiece;
 
     // Position & movement vars
-    public int x;
-    public int y;
-
-    public Vector2 homePosition;
-    public Vector2 destinationPosition;
+    private Vector2 homePosition;
+    private Vector2 destinationPosition;
 
     private bool isMoving;
 
@@ -21,6 +18,7 @@ public class Piece : MonoBehaviour
     
     private void Start()
     {
+        // DI this?
         gamePiece = this.gameObject;
         SetPositionData(gamePiece.transform.position);
     }
@@ -33,7 +31,7 @@ public class Piece : MonoBehaviour
             if (Vector2.Distance(gamePiece.transform.position, destinationPosition) > 0.01f)
             {
                 Vector2 direction = (destinationPosition - homePosition).normalized;
-                transform.Translate(4 * Time.deltaTime * direction);
+                transform.Translate(4.5f * Time.deltaTime * direction);
             }
             else
             {
@@ -41,6 +39,7 @@ public class Piece : MonoBehaviour
             }
         }
 
+        // piece is matched visual cue
         if (isMatched)
         {
             transform.Rotate(0, 0.4f, 0);
@@ -48,11 +47,9 @@ public class Piece : MonoBehaviour
     }
 
     // Sets the position data for the game piece
-    private void SetPositionData(Vector2 newPosition)
+    public void SetPositionData(Vector2 newPosition)
     {
         homePosition = newPosition;
-        x = (int)newPosition.x;
-        y = (int)newPosition.y;
     }
 
     // Registers mouse click on game piece, passes the selection to the game controller
@@ -78,8 +75,16 @@ public class Piece : MonoBehaviour
         SetPositionData(destinationPosition);
 
         // Let the game controller know movement is complete
-        //gameControl.OnMoveComplete.Invoke();
         gameControl.MovementComplete(gamePiece);
     }
 
+    // Sets the game piece's match status
+    public void SetPieceMatchStatus(bool matchStatus)
+    {
+        isMatched = matchStatus;
+
+        // reset piece rotation
+        if (!isMatched)
+            transform.rotation = Quaternion.identity;
+    }
 }

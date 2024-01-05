@@ -123,6 +123,11 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &365228710 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2643999207443715735, guid: a6f8855daf904b44faaa689ed63cc93e, type: 3}
+  m_PrefabInstance: {fileID: 2643999206353638700}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -212,7 +217,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2643999207443715728, guid: a6f8855daf904b44faaa689ed63cc93e, type: 3}
   m_PrefabInstance: {fileID: 2643999206353638700}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 365228710}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cc0dfa0c2047ba1479d29f17cb6428da, type: 3}
@@ -261,7 +266,11 @@ MonoBehaviour:
   - {fileID: 7301640355716454877, guid: 51912a1d013597346b8d23fb2ccc6bea, type: 3}
   - {fileID: 7564639300433867479, guid: f1358f69810718a479dabe5a5eab489d, type: 3}
   - {fileID: 6232701409956777973, guid: 947a4385f533c544f93758c2b19609f6, type: 3}
+  piecesMoving: 0
+  pieceOne: {fileID: 0}
+  pieceTwo: {fileID: 0}
   movingPieces: []
+  piecesToCheck: []
   currentScore: 0
   basicMatchScore: 50
 --- !u!4 &2008949127
@@ -291,9 +300,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1658ac1f30c5a7a4b9becdb260d2ae60, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pooledObjects: []
-  objectToPool: {fileID: 0}
-  amountToPool: 0
+  gameBoard: {fileID: 365228710}
+  gamePiece: {fileID: 437219513223969861, guid: 8ba572c951c9e0341a34ba0699e61b29, type: 3}
 --- !u!1001 &2643999206353638700
 PrefabInstance:
   m_ObjectHideFlags: 0

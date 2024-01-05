@@ -1,13 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public class GameController : MonoBehaviour
 {
     // Core Game Vars
-    private static GameController gameControl;
-
     [SerializeField] private int _width;
     [SerializeField] private int _height;
 
@@ -20,32 +19,31 @@ public class GameController : MonoBehaviour
     private GameObject[,] allPieces;
 
     // Move System Vars
-    public bool piecesMoving = false;
+    private bool piecesMoving = false;
 
     [SerializeField] private GameObject pieceOne = null;
     [SerializeField] private GameObject pieceTwo = null;
 
     private Square originSquare;
 
-    public List<GameObject> movingPieces = new List<GameObject>();
-    public List<GameObject> piecesToCheck = new List<GameObject>();
+    private List<GameObject> movingPieces = new List<GameObject>();
+    private List<GameObject> piecesToCheck = new List<GameObject>();
 
     // Scoring variables
     public int currentScore = 0;
     [SerializeField] private int basicMatchScore;
 
-
-
-    // Init
-    private void Awake()
+    private void Start()
     {
-        // SLOPPY - DI this
-        gameControl = this;
-        //gameControl.OnMoveComplete.AddListener(MovementComplete);
-
-        // Set the board
         allSquares = new GameObject[_width, _height];
         allPieces = new GameObject[_width, _height];
+
+        ObjectPool.SharedInstance.InitPool(_height, _width);
+        InitGame();
+    }
+
+    private void InitGame()
+    {
         CreateBoard();
         CreateGamePieces();
     }
@@ -101,7 +99,7 @@ public class GameController : MonoBehaviour
                 }
 
                 GameObject newPiece = SpawnGamePiece(x, y, pieceToUse);
-                newPiece.name = pieces[pieceToUse].name + "(" + x + ", " + y + ")";
+                newPiece.name = newPiece.name + "(" + x + ", " + y + ")";
                 allPieces[x, y] = newPiece;
             }
         }
@@ -148,11 +146,16 @@ public class GameController : MonoBehaviour
     private GameObject SpawnGamePiece(int spawnX, int spawnY, int pieceToUse)
     {
         Vector2 spawnPosition = new Vector2(spawnX, spawnY);
-        GameObject newPiece = Instantiate(pieces[pieceToUse], spawnPosition, Quaternion.identity) as GameObject;
-        newPiece.transform.parent = gameBoard.transform;
-        newPiece.GetComponent<Piece>().gameControl = this;
+        GameObject newPiece = ObjectPool.SharedInstance.GetPooledGamePiece(pieces[pieceToUse]);
         
-        //allPieces[x, y] = newPiece;
+        // Set position & positional data
+        newPiece.transform.position = spawnPosition;
+        newPiece.GetComponent<Piece>().SetPositionData(spawnPosition);
+
+        // Set game controller and activate
+        newPiece.GetComponent<Piece>().gameControl = this;
+        newPiece.SetActive(true);
+
         return newPiece;
     }
 
@@ -161,9 +164,9 @@ public class GameController : MonoBehaviour
     {
         if (pieceOne == null)
         {
-            // First piece selected.
-            int originX = piece.GetComponent<Piece>().x;
-            int originY = piece.GetComponent<Piece>().y;
+            // First piece selected - piece movement snaps to grid coords. Transform position will correlate with 2D array pos.
+            int originX = (int)piece.transform.position.x;
+            int originY = (int)piece.transform.position.y;
             originSquare = allSquares[originX, originY].GetComponent<Square>();
             originSquare.SwitchSprite(true);
 
@@ -240,8 +243,6 @@ public class GameController : MonoBehaviour
     // Checks if any of the moved pieces have a match. If a match exists, it is flagged on the piece.
     private void CheckForMatches()
     {
-        Debug.Log("CheckForMatches()");
-
         bool isMatch = false;
 
         // cycle through moved pieces & look for a horizontal/vertical match
@@ -260,8 +261,6 @@ public class GameController : MonoBehaviour
 
         if (isMatch)
         {
-            Debug.Log("Match!");
-            // 
             if (pieceOne != null && pieceTwo != null)
             {
                 pieceOne = null;
@@ -272,14 +271,10 @@ public class GameController : MonoBehaviour
         }
         else if (!isMatch && pieceOne != null && pieceTwo != null)
         {
-            Debug.Log("No Match! UNDO MOVE");
-
             UndoMove();
         }
         else
         {
-            Debug.Log("No Match! END TURN");
-
             EndTurn();
         }
     }
@@ -359,7 +354,8 @@ public class GameController : MonoBehaviour
         SetScore(matches.Count);
         foreach (GameObject piece in matches)
         {
-            piece.GetComponent<Piece>().isMatched = true;
+            // Cycle through each matched game piece and set the matched flag
+            piece.GetComponent<Piece>().SetPieceMatchStatus(true);
         }
     }
 
@@ -411,7 +407,7 @@ public class GameController : MonoBehaviour
             {
                 if (allPieces[x, y] != null && allPieces[x, y].GetComponent<Piece>().isMatched)
                 {
-                    //Destroy(allPieces[x, y]);
+                    allPieces[x, y].GetComponent<Piece>().SetPieceMatchStatus(false);
                     allPieces[x, y].SetActive(false);
                     allPieces[x, y] = null;
                 }
